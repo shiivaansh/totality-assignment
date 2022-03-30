@@ -3,6 +3,9 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+
+	"gopkg.in/mgo.v2/bson"
+
 	"log"
 	"net/http"
 	"os"
@@ -12,14 +15,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/bson"
+
+	// "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 func ConnectToDB() (*mongo.Client, error) {
-	// c, err := mongo.NewClient(options.Client().ApplyURI(EnvMongoURI()))
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb+srv://shivansh:shivansh@cluster0.crdbf.mongodb.net/users?retryWrites=true&w=majority"))
 
 	if err != nil {
@@ -44,8 +47,7 @@ func EnvMongoURI() string {
 	return os.Getenv("MONGOURI")
 }
 func GetCollection(DbName string, CollectionName string) (*mongo.Collection, error) {
-	// collection := client.Database("Totality Corp").Collection(collectionName)
-	// return collection
+
 	client, _ := ConnectToDB()
 
 	collection := client.Database(DbName).Collection(CollectionName)
@@ -53,21 +55,16 @@ func GetCollection(DbName string, CollectionName string) (*mongo.Collection, err
 	return collection, nil
 }
 func GetUsers(c *gin.Context) {
-	// client := *&http.Client{}
-	var user *entities.UserRespnse
-	// var DB *mongo.Client = ConnectToDB()
-	userCollection, _ := GetCollection("totality", "users")
-	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	collection, _ := GetCollection("totality", "users")
 	userId := c.Param("name")
-	// log.Println(userId)
-	// log.Println(userCollection)
-	// defer cancel()
-	err := userCollection.FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
+	var results entities.UserRespnse
+	err := collection.FindOne(context.Background(), bson.M{"id": userId}).Decode(results)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "error")
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	log.Println(results)
+	c.JSON(http.StatusOK, results)
 }
 
 func CreatePerson(c *gin.Context) {
@@ -77,7 +74,7 @@ func CreatePerson(c *gin.Context) {
 		return
 	}
 	var user = new(entities.UserRespnse)
-	// json.Unmarshal([]byte(c.Request.Body()), &user)
+
 	if err := c.BindJSON(user); err != nil {
 
 		c.JSON(http.StatusOK, "ERRORRR from JSON!!!!!!")
